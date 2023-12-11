@@ -1,21 +1,318 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Bootstrap demo</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
-    
-  </head>
-  <body>
-    <section class="navbar--section">
-      <nav class="navbar bg-body-tertiary">
-        <div class="container">
-          <span class="navbar-brand mb-0 h1">Pomodromo Timer</span>
-          <a href="login"><img width="48" height="48" src="https://img.icons8.com/pulsar-color/48/enter-2.png" alt="enter-2"/></a>
-        </div>
-      </nav>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Bootstrap demo</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+              rel="stylesheet"
+              integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
+              crossorigin="anonymous">
+        <style>
+            .add {
+                margin-left: 70%;
+                margin-right: 0%;
+            }
+
+            .timer {
+                font-size: 2em;
+                margin-bottom: 20px;
+            }
+
+            button {
+                padding: 10px 20px;
+                font-size: 1em;
+                cursor: pointer;
+                margin: 0 5px;
+            }
+
+            .editable--form {
+                display: flex;
+                flex-direction: column;
+                padding: 1rem;
+                width: 50%;
+                margin: 0 auto;
+            }
+
+            .editable--form--btn {
+                padding: 2rem;
+            }
+        </style>
+    </head>
+    <body>
+    <section class="navbar--section fw-bold">
+        <nav class="navbar navbar-expand-lg bg-body-tertiary">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#">Pomodoro Timer</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#navbarNavAltMarkup"
+                        aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse justify-content-end" id="navbarNavAltMarkup">
+                    <div class="navbar-nav">
+                        {% if user.is_authenticated %}
+                        <a class="nav-link mx-3" href="{% url 'add'  user.id %}">
+                          <img width="30" src="https://img.icons8.com/ios/50/add--v1.png" alt="add--v1"/>
+                        </a>
+                        <a class="btn btn-primary p-2 fw-bold" href="{% url 'logout' %}">Logout</a>
+                        {% else %}
+                        <a class="nav-link" href="{% url 'login' %}">Login/SignUp</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </nav>
     </section>
+
+    <section class="timer--section">
+        <div class="container">
+            <div class="row">
+
+                <div class="col-lg-12 mt-5 h4 text-center">
+                    <p class="h2 text-center">Pomodoro</p>
+                    <div class="timer ">
+                        <span id="hours">00</span>:<span id="minutes">25</span>:<span id="seconds">00</span>
+                    </div>
+
+                    <button class="btn btn-primary" onclick="startMainTimer()">Start</button>
+                    <button class="btn btn-primary" onclick="pauseTimer()">Pause</button>
+                    <button class="btn btn-primary" onclick="resetTimer()">Reset</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="custom--time">
+        <div class="container">
+            <p class=" h3">Your Timers</p>
+            {% if user.is_authenticated%}
+
+
+            <div class="row">
+                {% if editable %}
+                <form id="pomodoroForm" method="POST" action="{% url 'add' user.id %}">
+                    {% csrf_token %}
+                    <div class="h5 col-lg-12  mt-5 editable--form">
+                        {{form}}
+                        <div class="editable--form--btn text-center">
+                            <button class=" btn btn-primary " type="submit">Save</button>
+                        </div>
+                    </div>
+                </form>
+                {% else %}
+
+                {% if timers is None %}
+                <div class="h5 col-lg-12 mt-5 text-center">
+                    <p class="h4 text-center">No timer is set</p>
+                </div>
+
+                {% else %}
+
+                {% for timer in timers %}
+                  {% if timer.uuid == user.id %}
+                <div class="h5 col-lg-4  mt-5 text-center">
+                    <p class="h2 text-center">{{ timer.title }}</p>
+                    <div class="timer">
+                        <span id="hours{{ timer.id }}">{{ timer.hours }}</span>:
+                        <span id="minutes{{ timer.id }}">{{ timer.minutes }}</span>:
+                        <span id="seconds{{ timer.id }}">{{ timer.seconds }}</span>
+                      
+                    </div>
+                 
+                    <button class="btn btn-primary m-2" onclick="startITimer('{{ timer.id }}')">Start</button>
+                    <button class="btn btn-primary m-2" onclick="pauseITimer('{{ timer.id }}')">Pause</button>
+                    <button class="btn btn-primary m-2" onclick="resetITimer('{{ timer.id }}')">Reset</button>
+                    <a class="btn btn-danger m-2"  href="/delete/{{ timer.id }}">Delete</a>
+                <span id="initialMinutes{{ timer.id }}" style="display: none;">{{ timer.minutes }}</span>
+                <span id="initialSeconds{{ timer.id }}" style="display: none;">{{ timer.seconds }}</span>
+
+                  <!-- Add an additional hidden input field to store the timer ID -->
+                  <input type="hidden" class="timerId" value="{{ timer.id }}">
+
+                </div>
+              {%endif%}
+                {% endfor %}
+
+
+                {% endif %}
+
+                {% endif %}
+            </div>
+            {% else %}
+            <div class="row">
+
+                <div class="col-lg-12 p-5 mt-5 text-center">
+
+                    <p class="h3">Please <a href="{% url 'login' %}" class="btn btn-primary">Login</a> to see your custom timers</p>
+                </div>
+            </div>
+            {% endif %}
+
+    </section>
+
+   
+    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+    <script>
+
+      // Main pomodoro timer
+      let mainTimer;
+      let mainSeconds = 0;
+      let mainMinutes = 25;
+      let mainHours = 0;
+      let mainIsTimerRunning = false;
+
+      const audio = new Audio('static/media/audio/Airtel Mp3 - Airtel Song.mp3');
+
+      function startMainTimer() {
+          if (!mainIsTimerRunning) {
+              mainTimer = setInterval(updateMainTimer, 1000);
+              mainIsTimerRunning = true;
+          }
+      }
+
+      function updateMainTimer() {
+          mainSeconds--;
+
+          if (mainSeconds < 0) {
+              mainSeconds = 59;
+
+              mainMinutes--;
+
+              if (mainMinutes < 0) {
+                  mainMinutes = 59;
+
+                  mainHours--;
+
+                  if (mainHours < 0) {
+                      clearInterval(mainTimer);
+                      timerComplete();
+                      return;
+                  }
+              }
+          }
+
+          updateMainTimerDisplay();
+      }
+
+      function updateMainTimerDisplay() {
+          const formattedMainHours = padTime(mainHours);
+          const formattedMainMinutes = padTime(mainMinutes);
+          const formattedMainSeconds = padTime(mainSeconds);
+
+          document.getElementById('hours').innerText = formattedMainHours;
+          document.getElementById('minutes').innerText = formattedMainMinutes;
+          document.getElementById('seconds').innerText = formattedMainSeconds;
+      }
+
+      function timerComplete() {
+          audio.play();
+      }
+
+      function pauseTimer() {
+          clearInterval(mainTimer);
+          mainIsTimerRunning = false;
+      }
+
+      function resetTimer() {
+          clearInterval(mainTimer);
+          mainIsTimerRunning = false;
+          mainSeconds = 0;
+          mainHours = 0;
+          mainMinutes = 25;
+          updateMainTimerDisplay();
+      }
+
+      function padTime(time) {
+          return (time < 10) ? `0${time}` : time;
+      }
+
+      
+
+      // For individual timer
+      const timers = {};
+
+      function startITimer(timerId) {
+          const initialMinutes = parseInt(document.getElementById(`initialMinutes${timerId}`).innerText) || 0;
+          const initialSeconds = parseInt(document.getElementById(`initialSeconds${timerId}`).innerText) || 0;
+          console.log(`Initial Minutes: ${initialMinutes}, Initial Seconds: ${initialSeconds}`);
+          timers[timerId] = {
+              timer: setInterval(() => updateITimer(timerId), 1000),
+              isTimerRunning: true,
+              hours: 0,
+              minutes: initialMinutes,
+              seconds: initialSeconds
+          };
+      }
+
+      function updateITimer(timerId) {
+          let timer = timers[timerId];
+          timer.seconds--;
+
+          if (timer.seconds < 0) {
+              timer.seconds = 59;
+              timer.minutes--;
+
+              if (timer.minutes < 0) {
+                  timer.minutes = 59;
+                  timer.hours--;
+
+                  if (timer.hours < 0) {
+                      clearInterval(timer.timer);
+                      timerComplete(timerId);
+                      timer.isTimerRunning = false;
+                      return;
+                  }
+              }
+          }
+
+          updateITimerDisplay(timerId);
+      }
+
+      function updateITimerDisplay(timerId) {
+          let timer = timers[timerId];
+          const formattedHours = padTime(timer.hours);
+          const formattedMinutes = padTime(timer.minutes);
+          const formattedSeconds = padTime(timer.seconds);
+
+          document.getElementById(`hours${timerId}`).innerText = formattedHours;
+          document.getElementById(`minutes${timerId}`).innerText = formattedMinutes;
+          document.getElementById(`seconds${timerId}`).innerText = formattedSeconds;
+      }
+
+      function pauseITimer(timerId) {
+          clearInterval(timers[timerId].timer);
+          timers[timerId].isTimerRunning = false;
+      }
+
+      function resetITimer(timerId) {
+          // Retrieve the timer ID from the hidden input field dynamically
+          const timerIdInput = document.querySelector(`input.timerId[value='${timerId}']`);
+
+          // Retrieve the initial values from the hidden spans with unique ids
+      const initialMinutes = parseInt(document.getElementById(`initialMinutes${timerId}`).innerText) || 0;
+      const initialSeconds = parseInt(document.getElementById(`initialSeconds${timerId}`).innerText) || 0;
+
+          let timer = timers[timerId];
+          clearInterval(timer.timer);
+          timer.isTimerRunning = false;
+          timer.seconds = initialSeconds;
+          timer.hours = 0;
+          timer.minutes = initialMinutes;
+          updateITimerDisplay(timerId);
+      }
+
+      function timerComplete(timerId) {
+          // Handle completion, e.g., play sound
+          const audio1 = new Audio('static/media/audio/Airtel Mp3 - Airtel Song.mp3');
+          console.log("Played...")
+          audio1.play();
+      }
+
+      function padTime(time) {
+          return (time < 10) ? `0${time}` : time;
+      }
+    </script>
   </body>
 </html>

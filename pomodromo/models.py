@@ -1,6 +1,9 @@
 from django.db import models
 
-class PomodoroSession(models.Model):
-    is_running = models.BooleanField(default=False)
-    duration = models.IntegerField(default=25)
-    time_elapsed = models.IntegerField(default=0)
+class Timers(models.Model):
+  title = models.CharField(max_length=100)
+  hours = models.IntegerField(default=0)
+  minutes = models.IntegerField(default=25)
+  seconds = models.IntegerField(default=0)
+  uuid = models.IntegerField(default=0)
+  
