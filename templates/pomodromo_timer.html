@@ -37,6 +37,22 @@
             .editable--form--btn {
                 padding: 2rem;
             }
+          .round-time-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+          }
+
+          .round-time-bar div {
+            height: 100%;
+            background-color: #4caf50; /* Change this color to your preferred color */
+            border-radius: 10px;
+            width: 0; /* Set initial width to zero *//* This duration should match the timer duration */
+          }
+
+
         </style>
     </head>
     <body>
@@ -83,9 +99,10 @@
         </div>
     </section>
 
+      
     <section class="custom--time">
         <div class="container">
-            <p class=" h3">Your Timers</p>
+            <p class=" h3">Your Tasks By Categories</p>
             {% if user.is_authenticated%}
 
 
@@ -111,26 +128,35 @@
 
                 {% for timer in timers %}
                   {% if timer.uuid == user.id %}
-                <div class="h5 col-lg-4  mt-5 text-center">
-                    <p class="h2 text-center">{{ timer.title }}</p>
-                    <div class="timer">
-                        <span id="hours{{ timer.id }}">{{ timer.hours }}</span>:
-                        <span id="minutes{{ timer.id }}">{{ timer.minutes }}</span>:
-                        <span id="seconds{{ timer.id }}">{{ timer.seconds }}</span>
-                      
+
+              <div class="container mt-5 p-5  bg-opacity-10 rounded ">
+                <div class="row text-center">
+                    <div class="col ">
+                        <p class="fw-bolder text-center fs-3">Category : {{ timer.category }}</p>
+                        <p class="fw-bolder text-center">Title : {{ timer.title }}</p>
                     </div>
-                 
-                    <button class="btn btn-primary m-2" onclick="startITimer('{{ timer.id }}')">Start</button>
-                    <button class="btn btn-primary m-2" onclick="pauseITimer('{{ timer.id }}')">Pause</button>
-                    <button class="btn btn-primary m-2" onclick="resetITimer('{{ timer.id }}')">Reset</button>
-                    <a class="btn btn-danger m-2"  href="/delete/{{ timer.id }}">Delete</a>
-                <span id="initialMinutes{{ timer.id }}" style="display: none;">{{ timer.minutes }}</span>
-                <span id="initialSeconds{{ timer.id }}" style="display: none;">{{ timer.seconds }}</span>
+                    <div class="col d-flex align-items-center justify-content-center timer">
+                      <span id="hours{{ timer.id }}">{{ timer.hours }}</span>:
+                      <span id="minutes{{ timer.id }}">{{ timer.minutes }}</span>:
+                      <span id="seconds{{ timer.id }}">{{ timer.seconds }}</span>
 
-                  <!-- Add an additional hidden input field to store the timer ID -->
-                  <input type="hidden" class="timerId" value="{{ timer.id }}">
+                      <button class="btn btn-primary m-2" onclick="startITimer('{{ timer.id }}')">Start</button>
+                      <button class="btn btn-primary m-2" onclick="pauseITimer('{{ timer.id }}')">Pause</button>
+                      <button class="btn btn-primary m-2" onclick="resetITimer('{{ timer.id }}')">Reset</button>
+                            <a class="btn btn-danger m-2"  href="/delete/{{ timer.id }}">Delete</a>
+                        <span id="initialMinutes{{ timer.id }}" style="display: none;">{{ timer.minutes }}</span>
+                        <span id="initialSeconds{{ timer.id }}" style="display: none;">{{ timer.seconds }}</span>
 
+                          <!-- Add an additional hidden input field to store the timer ID -->
+                          <input type="hidden" class="timerId" value="{{ timer.id }}">
+                    </div>
                 </div>
+
+                <div class="round-time-bar" data-style="smooth" style="--duration: 150;">
+                    <div id="progressBar{{ timer.id }}"></div>
+                </div>
+    
+                  </div>
               {%endif%}
                 {% endfor %}
 
@@ -155,6 +181,8 @@
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
     <script>
+
+     
 
       // Main pomodoro timer
       let mainTimer;
@@ -228,7 +256,7 @@
           return (time < 10) ? `0${time}` : time;
       }
 
-      
+  
 
       // For individual timer
       const timers = {};
@@ -236,38 +264,106 @@
       function startITimer(timerId) {
           const initialMinutes = parseInt(document.getElementById(`initialMinutes${timerId}`).innerText) || 0;
           const initialSeconds = parseInt(document.getElementById(`initialSeconds${timerId}`).innerText) || 0;
-          console.log(`Initial Minutes: ${initialMinutes}, Initial Seconds: ${initialSeconds}`);
+
+          const totalSeconds = initialMinutes * 60 + initialSeconds;
+
           timers[timerId] = {
               timer: setInterval(() => updateITimer(timerId), 1000),
               isTimerRunning: true,
               hours: 0,
               minutes: initialMinutes,
-              seconds: initialSeconds
+              seconds: initialSeconds,
+              totalSeconds: totalSeconds,
+              progressBar: document.getElementById(`progressBar${timerId}`)
           };
+
+          setProgressBarDuration(timerId, totalSeconds);
+          updateITimerDisplay(timerId);
+      }
+
+      function setProgressBarDuration(timerId, duration) {
+          const progressBar = timers[timerId].progressBar;
+          progressBar.style.setProperty('--duration', duration + 's');
       }
 
       function updateITimer(timerId) {
           let timer = timers[timerId];
-          timer.seconds--;
 
-          if (timer.seconds < 0) {
-              timer.seconds = 59;
-              timer.minutes--;
+          // Check if the timer is running
+          if (timer.isTimerRunning) {
+              timer.seconds--;
 
-              if (timer.minutes < 0) {
-                  timer.minutes = 59;
-                  timer.hours--;
+              if (timer.seconds < 0) {
+                  timer.seconds = 59;
+                  timer.minutes--;
 
-                  if (timer.hours < 0) {
-                      clearInterval(timer.timer);
-                      timerComplete(timerId);
-                      timer.isTimerRunning = false;
-                      return;
+                  if (timer.minutes < 0) {
+                      timer.minutes = 59;
+                      timer.hours--;
+
+                      if (timer.hours < 0) {
+                          clearInterval(timer.timer);
+                          timerComplete(timerId);
+                          timer.isTimerRunning = false;
+                          return;
+                      }
                   }
               }
-          }
 
+              updateITimerDisplay(timerId);
+              updateProgressBar(timerId);
+          }
+      }
+
+      function updateProgressBar(timerId) {
+          let timer = timers[timerId];
+
+          // Check if the timer is still running
+          if (timer.isTimerRunning) {
+              let remainingSeconds = timer.hours * 3600 + timer.minutes * 60 + timer.seconds;
+              let progressPercentage = ((timer.totalSeconds - remainingSeconds) / timer.totalSeconds) * 100;
+
+              timer.progressBar.style.width = `${progressPercentage}%`;
+          }
+      }
+
+
+      function pauseITimer(timerId) {
+          const timer = timers[timerId];
+
+          if (timer.isTimerRunning) {
+              clearInterval(timer.timer);
+              timer.isTimerRunning = false;
+          }
+      }
+
+      function resumeITimer(timerId) {
+          const timer = timers[timerId];
+
+          if (!timer.isTimerRunning) {
+              timer.timer = setInterval(() => updateITimer(timerId), 1000);
+              timer.isTimerRunning = true;
+          }
+      }
+
+      function resetITimer(timerId) {
+          const timerIdInput = document.querySelector(`input.timerId[value='${timerId}']`);
+          const initialMinutes = parseInt(document.getElementById(`initialMinutes${timerId}`).innerText) || 0;
+          const initialSeconds = parseInt(document.getElementById(`initialSeconds${timerId}`).innerText) || 0;
+
+          let timer = timers[timerId];
+          clearInterval(timer.timer);
+          timer.isTimerRunning = false;
+          timer.seconds = initialSeconds;
+          timer.hours = 0;
+          timer.minutes = initialMinutes;
           updateITimerDisplay(timerId);
+      }
+
+      function timerComplete(timerId) {
+          const audio1 = new Audio('static/media/audio/Airtel Mp3 - Airtel Song.mp3');
+          console.log("Played...")
+          audio1.play();
       }
 
       function updateITimerDisplay(timerId) {
@@ -281,38 +377,10 @@
           document.getElementById(`seconds${timerId}`).innerText = formattedSeconds;
       }
 
-      function pauseITimer(timerId) {
-          clearInterval(timers[timerId].timer);
-          timers[timerId].isTimerRunning = false;
-      }
-
-      function resetITimer(timerId) {
-          // Retrieve the timer ID from the hidden input field dynamically
-          const timerIdInput = document.querySelector(`input.timerId[value='${timerId}']`);
-
-          // Retrieve the initial values from the hidden spans with unique ids
-      const initialMinutes = parseInt(document.getElementById(`initialMinutes${timerId}`).innerText) || 0;
-      const initialSeconds = parseInt(document.getElementById(`initialSeconds${timerId}`).innerText) || 0;
-
-          let timer = timers[timerId];
-          clearInterval(timer.timer);
-          timer.isTimerRunning = false;
-          timer.seconds = initialSeconds;
-          timer.hours = 0;
-          timer.minutes = initialMinutes;
-          updateITimerDisplay(timerId);
-      }
-
-      function timerComplete(timerId) {
-          // Handle completion, e.g., play sound
-          const audio1 = new Audio('static/media/audio/Airtel Mp3 - Airtel Song.mp3');
-          console.log("Played...")
-          audio1.play();
-      }
-
       function padTime(time) {
           return (time < 10) ? `0${time}` : time;
       }
+
     </script>
   </body>
 </html>
